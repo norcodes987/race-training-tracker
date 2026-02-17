@@ -54,3 +54,47 @@ export async function refreshAccessToken(athleteId: number) {
 
   return data.access_token;
 }
+
+// fetch activities from Strava and upsert into db
+export async function syncActivities(athleteId: number) {
+  const token = await refreshAccessToken(athleteId);
+  let page = 1;
+  let totalSynced = 0;
+
+  while (true) {
+    const { data: activities } = await axios.get(
+      `${STRAVA_BASE}/athlete/activities`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { per_page: 100, page },
+      },
+    );
+    if (activities.length === 0) break;
+
+    const runs = activities
+      .filter((a: any) => a.type === "Run")
+      .map((a: any) => ({
+        id: a.id,
+        athlete_id: athleteId,
+        name: a.name,
+        type: a.type,
+        start_data: a.start_data,
+        distance_m: a.distance,
+        duration_s: a.moving_time,
+        avg_pace_s_km: a.average_speed > 0 ? 1000 / a.average_speed : null, //convert m/s to s/km
+        avg_hr: a.average_heartrate ?? null,
+        max_hr: a.max_heartrate ?? null,
+        elevation_m: a.total_elevation_gain,
+        avg_cadence: a.average_cadence ?? null,
+        map_polyline: a.map?.summary_polyline ?? null,
+        raw_data: a,
+      }));
+
+    if (runs.length > 0) {
+      await supabaseAdmin.from("activities").upsert(runs, { onConflict: "id" });
+      totalSynced += runs.length;
+    }
+    page++;
+  }
+  return { synced: totalSynced };
+}
