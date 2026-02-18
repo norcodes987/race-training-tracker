@@ -2,8 +2,10 @@ import PaceChart from '@/components/PaceChart';
 import RaceCountdown from '@/components/RaceCountdown';
 import RecentRuns from '@/components/RecentRuns';
 import SyncButton from '@/components/SyncButton';
+import TrainingCalendar from '@/components/TrainingCalendar';
 import WeeklyVolume from '@/components/WeeklyVolume';
 import { getActivitiesData } from '@/lib/activities';
+import { getTrainingPlan } from '@/lib/training-plan';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
@@ -22,6 +24,7 @@ export default async function DashboardPage() {
   }
 
   const { activities, weeklyVolume, currentPace, totalRuns, thisWeekKm } = data;
+  const planWeeks = await getTrainingPlan(athleteId, activities);
 
   return (
     <main className='min-h-screen bg-zinc-950 text-white'>
@@ -53,6 +56,9 @@ export default async function DashboardPage() {
 
         {/* Recent runs table */}
         <RecentRuns activities={activities ?? []} />
+
+        {/* Training Calendar */}
+        <TrainingCalendar weeks={planWeeks} />
       </div>
     </main>
   );
