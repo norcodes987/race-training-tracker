@@ -9,29 +9,38 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // exchange code for tokens + athlete profile
+    // Exchange code for tokens + athlete profile
     const tokenData = await exchangeCodeForTokens(code);
-    await supabaseAdmin.from("strava_tokens").upsert(
-      {
-        athlete_id: tokenData.athlete.id,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_at: tokenData.expires_at,
-        athlete_name: `${tokenData.athlete.firstname} ${tokenData.athlete.lastname}`,
-        athlete_photo: tokenData.athlete.profile,
-      },
-      { onConflict: "athlete_id" },
-    );
+
+    const { error: upsertError } = await supabaseAdmin
+      .from("strava_tokens")
+      .upsert(
+        {
+          athlete_id: tokenData.athlete.id,
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expires_at: tokenData.expires_at,
+          athlete_name: `${tokenData.athlete.firstname} ${tokenData.athlete.lastname}`,
+        },
+        { onConflict: "athlete_id" },
+      );
+
+    if (upsertError) {
+      console.error("Supabase upsert in strava_tokens db failed:", upsertError);
+      throw upsertError;
+    }
 
     const res = NextResponse.redirect(`${process.env.NEXTAUTH_URL}/dashboard`);
     res.cookies.set("athlete_id", String(tokenData.athlete.id), {
       httpOnly: true,
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
       path: "/",
     });
     return res;
   } catch (err) {
-    console.error("Strava callback error: , err");
-    return NextResponse.redirect("?error=auth+failed");
+    console.error("Strava callback error:", err);
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/?error=auth_failed`,
+    );
   }
 }
