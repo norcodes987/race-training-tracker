@@ -1,4 +1,11 @@
-import { addWeeks, format, isSameDay, startOfWeek, subWeeks } from 'date-fns';
+import {
+  addWeeks,
+  format,
+  isSameDay,
+  parseISO,
+  startOfWeek,
+  subWeeks,
+} from 'date-fns';
 import { supabaseAdmin } from './supabase';
 
 export interface PlanDay {
@@ -24,6 +31,12 @@ export async function getTrainingPlan(
   athleteId: string,
   activities: any[],
 ): Promise<PlanWeek[]> {
+  const TIMEZONE_OFFSET_MINUTES = 8 * 60; // Singapore UTC+8
+
+  function utcToSingapore(date: Date) {
+    return new Date(date.getTime() + TIMEZONE_OFFSET_MINUTES * 60 * 1000);
+  }
+
   // Fetch plan for last 4 weeks + next 4 weeks (8 weeks total)
   const startDate = subWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), 3);
   const endDate = addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), 5);
@@ -44,25 +57,16 @@ export async function getTrainingPlan(
     return [];
   }
 
-  console.log('DEBUG: Total activities passed in:', activities.length);
-  console.log('DEBUG: Total plan days fetched:', planDays?.length);
-
   // match each plan day with activities
   const enrichedDays: PlanDay[] = planDays.map((day) => {
-    const dayDate = new Date(day.date);
-    const activity = activities.find((a) =>
-      isSameDay(new Date(a.start_date), dayDate),
-    );
+    const planDate = parseISO(day.date);
+    const planDateLocal = utcToSingapore(planDate);
 
-    if (day.date === '2026-02-19') {
-      console.log('DEBUG Feb 19:', {
-        planDay: day,
-        foundActivity: activity,
-        activityDistance: activity?.distance_m,
-        targetDistance: day.target_distance_m,
-        minRequired: day.target_distance_m ? day.target_distance_m * 0.9 : null,
-      });
-    }
+    const activity = activities.find((a) => {
+      const activityDate = parseISO(a.start_date);
+      const activityDateLocal = utcToSingapore(activityDate);
+      return isSameDay(planDateLocal, activityDateLocal);
+    });
 
     let completed = false;
 
