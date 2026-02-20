@@ -44,12 +44,25 @@ export async function getTrainingPlan(
     return [];
   }
 
+  console.log('DEBUG: Total activities passed in:', activities.length);
+  console.log('DEBUG: Total plan days fetched:', planDays?.length);
+
   // match each plan day with activities
   const enrichedDays: PlanDay[] = planDays.map((day) => {
     const dayDate = new Date(day.date);
     const activity = activities.find((a) =>
       isSameDay(new Date(a.start_date), dayDate),
     );
+
+    if (day.date === '2026-02-19') {
+      console.log('DEBUG Feb 19:', {
+        planDay: day,
+        foundActivity: activity,
+        activityDistance: activity?.distance_m,
+        targetDistance: day.target_distance_m,
+        minRequired: day.target_distance_m ? day.target_distance_m * 0.9 : null,
+      });
+    }
 
     let completed = false;
 
