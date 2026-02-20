@@ -21,7 +21,7 @@ A web application that syncs with Strava to help you prepare for race day. Track
 - **8-week periodized plan** — Base building → Peak volume → Taper
 - **Planned vs actual tracking** — Track sessions completed completed
 - **Compliance scoring** — Weekly completion percentage
-- **Distance validation** — Sessions only count if you hit 90%+ of target distance
+- **Distance validation** — Sessions only count if you hit 90% of target distance
 
 ## System Architecture
 
