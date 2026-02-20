@@ -9,6 +9,7 @@ import { getTrainingPlan } from '@/lib/training-plan';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+export const revalidate = 60;
 export default async function DashboardPage() {
   // redirect to home if not authenticated
   const cookieStore = await cookies();
